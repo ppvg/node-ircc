@@ -1,0 +1,35 @@
+{
+  "name": "aether",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Modular IRC library.",
+  "main": "index.js",
+  "directories": {
+    "test": "test",
+    "lib": "lib"
+  },
+  "devDependencies": {
+    "LiveScript": "~1.1.1",
+    "mocha": "~1.10.0",
+    "chai": "~1.6.1",
+    "sinon-chai": "~2.4.0",
+    "gaze": "~0.3.4",
+    "mockery": "~1.4.0"
+  },
+  "scripts": {
+    "test": "slake test",
+    "build": "slake build"
+  },
+  "repository": "",
+  "keywords": [
+    "irc",
+    "chat",
+    "streams",
+    "sockets",
+    "network",
+    "modular",
+    "LiveScript"
+  ],
+  "author": "Peter-Paul van Gemerden <info@ppvg.nl>",
+  "license": "BSD"
+}
