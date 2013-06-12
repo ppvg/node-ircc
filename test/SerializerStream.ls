@@ -1,4 +1,5 @@
 should = it
+pathToSerializerStream = path.join libPath, \SerializerStream
 
 serializer = sinon.stub!
 serializer.serialize = serializer
@@ -7,9 +8,9 @@ SerializerStream = null
 
 before ->
   mockery.enable();
-  mockery.registerAllowables [\stream \../src/SerializerStream]
+  mockery.registerAllowables [\stream pathToSerializerStream]
   mockery.registerMock \./serializer, serializer
-  SerializerStream := require \../src/SerializerStream
+  SerializerStream := require pathToSerializerStream
 after ->
   mockery.deregisterAll();
   mockery.disable();

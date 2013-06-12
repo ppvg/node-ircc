@@ -1,6 +1,6 @@
 should = it
 
-parse = parser = require \../src/parser
+parse = parser = require path.join libPath, \parser
 
 describe \parser, ->
   should 'parse simple commands', ->
@@ -24,6 +24,9 @@ describe \parser, ->
     message = parse '401'
     message.command.should.equal \NOSUCHNICK
     message.type.should.equal \error
+    message = parse 'UNKNOWNFANTASYCODE'
+    message.command.should.equal \UNKNOWNFANTASYCODE
+    message.type.should.equal \unknown
 
   should 'parse simple parameters', ->
     message = parse 'NICK TestBot'
@@ -93,3 +96,10 @@ describe \parser, ->
     message.nick.should.equal \nick
     message.user.should.equal \user
     message.host.should.equal \host
+
+  should 'throw Error if incoming message is complete gibberish', ->
+    (-> parse ':/)').should.throw 'Not a valid IRC message (not even a slightly).'
+    (-> parse ':irc.example.com').should.throw 'Not a valid IRC message (not even a slightly).'
+
+  should.skip 'throw more Errors'
+

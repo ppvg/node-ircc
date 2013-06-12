@@ -4,7 +4,7 @@ getName = -> if replies[it]? then that.replace /^(RPL|ERR)_/, '' else it
 getType = ->
   if replyTypes[it]? then that
   else if it in commands then 'command'
-  else 'unkown'
+  else 'unknown'
 
 convert = ->
   name: getName it

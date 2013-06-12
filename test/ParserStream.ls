@@ -1,5 +1,6 @@
 require! stream
 should = it
+pathToParserSream = path.join libPath, \ParserStream
 
 parser = sinon.stub!
 parser.parse = parser
@@ -8,9 +9,9 @@ ParserStream = null
 
 before ->
   mockery.enable();
-  mockery.registerAllowables [\stream \../src/ParserStream]
+  mockery.registerAllowables [\stream pathToParserSream]
   mockery.registerMock \./parser, parser
-  ParserStream := require \../src/ParserStream
+  ParserStream := require pathToParserSream
 after ->
   mockery.deregisterAll();
   mockery.disable();

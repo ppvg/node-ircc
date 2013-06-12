@@ -1,6 +1,7 @@
 should = it
 
 var Connection
+pathToConnection = path.join libPath, \Connection
 
 ctorSpy =
   SS: sinon.spy!
@@ -17,11 +18,11 @@ createMock = (name) ->
 before ->
   mockery.enable!
   mockery.registerAllowables [\./codes \events]
-  mockery.registerAllowable \../lib/Connection, true
+  mockery.registerAllowable pathToConnection, true
   mockery.registerMock \./SerializerStream, createMock \SS
   mockery.registerMock \./ParserStream, createMock \PS
   mockery.registerMock \net, { createConnection: createMock \Socket }
-  Connection := require \../lib/Connection
+  Connection := require pathToConnection
 
 after ->
   mockery.deregisterAll!

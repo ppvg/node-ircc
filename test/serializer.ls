@@ -1,6 +1,6 @@
 should = it
 
-serialize = serializer = require \../src/serializer
+serialize = serializer = require path.join libPath, \serializer
 
 describe \serializer, ->
 
@@ -73,3 +73,12 @@ describe \serializer, ->
       user: \user
       host: \host
     }
+
+  should 'throw Error if message object invalid or missing', ->
+    (-> serialize!)
+      .should.throw 'No message to serialize'
+    (-> serialize {cookies:'are awesome'})
+      .should.throw /^Invalid message/
+    (-> serialize {command:'BOO',server:'localhost',user:'greedy'})
+      .should.throw /^Invalid message/
+

@@ -1,7 +1,7 @@
 {
   "name": "aether",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "Modular IRC library.",
   "main": "index.js",
   "directories": {
@@ -18,7 +18,8 @@
   },
   "scripts": {
     "test": "slake test",
-    "build": "slake build"
+    "build": "slake build",
+    "coverage": "slake coverage"
   },
   "repository": "",
   "keywords": [
