@@ -1,7 +1,6 @@
 module.exports = serialize = (message) ->
   if not message? then throw new Error 'No message to serialize'
-  serializedMessage = [
-    formatPrefix message
+  [ formatPrefix message
     formatCommand message
   ].join ''
 
@@ -17,11 +16,9 @@ function formatPrefix message
     prefix = message.nick
     if message.user? then prefix += "!" + message.user
     if message.host? then prefix += "@" + message.host
-
-  if prefix?
-    ":#prefix "
   else
-    ''
+    return ''
+  return ":#prefix "
 
 /* Serialize the rest of the message from the command and the parameters */
 function formatCommand message

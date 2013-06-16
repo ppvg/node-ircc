@@ -9,7 +9,7 @@ task \build 'Compile all LiveScript from src/ to JavaScript in lib/' ->
 
 task \test 'Run the tests' ->
   build ->
-    runMocha [\--reporter, \spec, \test/**/*.ls]
+    runMocha [\--reporter, \spec, \test/**/*.ls, \-G]
 
 task \justtest 'Run the tests without running "build"' ->
   runMocha [\--reporter, \spec, \test/**/*.ls]

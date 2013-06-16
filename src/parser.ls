@@ -1,5 +1,5 @@
-regex = require \./parser-regexes
-codes = require \./parser-codes
+require! \./regex
+require! \./codes
 
 module.exports = parse = (line) ->
   line |> split |> parsePrefix |> parseCommand |> parseParameters

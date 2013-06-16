@@ -1,8 +1,7 @@
-require! \net
-require! \events
-
-ParserStream = require \./ParserStream
-SerializerStream = require \./SerializerStream
+require! net
+require! events
+require! \./ParserStream
+require! \./SerializerStream
 
 module.exports = class Connection extends events.EventEmitter
 
@@ -16,22 +15,50 @@ module.exports = class Connection extends events.EventEmitter
 
   /* Prototype methods */
 
-  connect: (...args) ~>
-    @{port, host} = parseSocketOptions ...args
+  connect: (...args) ->
+    if @_connected then throw new Error 'Already connected'
+    @{port, host} = normalizeConnectArgs ...args
     @socket = net.createConnection @port, @host
     @socket.pipe (@parser = new ParserStream)
     (@serializer = new SerializerStream).pipe @socket
+    @_connected = true
 
     @parser.on \readable, ~>
       while (message = @parser.read!)?
-        @emit \raw, message
+        handleMessage.call @, message
 
     @serializer.write command: \NICK, parameters: [@nickname]
     @serializer.write command: \USER, parameters: [@username, 0, 0, @realname]
 
+  disconnect: (message) ->
+    invalidQuitMessage = message? and typeof message is not \string
+    command = command: \QUIT
+    if invalidQuitMessage then throw new Error 'Invalid QUIT message'
+    if typeof message is \string then command.parameters = [message]
+    @serializer.write command
+    @_disconnecting = true
+
+  send: (...args) ->
+    command = args[0]
+    parameters = args.slice 1
+
+    switch (typeof! command)
+    | \Object
+      if not command? or typeof command.command isnt \string
+        throw new Error 'Invalid command'
+      message = command
+    | \String
+      message = { command }
+      if parameters.length > 0
+        message.parameters = normalizeMessageParams parameters
+    | otherwise
+      throw new Error 'Invalid command'
+
+    @serializer.write message
+
 /* Helper functions */
 
-function parseSocketOptions ...args
+function normalizeConnectArgs ...args
   tryAsObject = (obj) ->
     if typeof obj is \object
       validHost = typeof obj.host is \string
@@ -49,3 +76,30 @@ function parseSocketOptions ...args
       { port: host, host: port }
 
   (tryAsObject ...args) or (trySeparate ...args) or throw new Error 'Invalid socket options'
+
+function handleMessage message
+  @emit \raw, message
+  if message.type is \error
+    @emit \error, message
+  else if message.command is \ERROR
+    if @_disconnecting # (Servers confirm QUIT by responding with ERROR)
+      @serializer.unpipe @socket
+      @socket.unpipe @parser
+      @socket.end!
+      @_disconnecting = false
+      @_connected = false
+      @emit \disconnected
+    else
+      @emit \error, message
+  else
+    @emit message.command, message
+    @emit message.command.toLowerCase!, message
+
+function normalizeMessageParams input
+  concat = (prev, current) -> prev ++ current
+  arrayify = (param) ->
+    if typeof! param is not \Array
+      [param.toString!]
+    else
+      param
+  input.map arrayify .reduce concat

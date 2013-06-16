@@ -8,6 +8,9 @@
     "test": "test",
     "lib": "lib"
   },
+  "engines": {
+    "node": ">=0.9.8"
+  },
   "devDependencies": {
     "LiveScript": "~1.1.1",
     "mocha": "~1.10.0",
@@ -17,8 +20,8 @@
     "mockery": "~1.4.0"
   },
   "scripts": {
-    "test": "slake test",
     "build": "slake build",
+    "test": "slake test",
     "coverage": "slake coverage"
   },
   "repository": "",
