@@ -1,3 +1,5 @@
+[![Build Status](https://drone.io/github.com/PPvG/node-aether/status.png)](https://drone.io/github.com/PPvG/node-aether/latest) [![Code Coverage](https://drone.io/github.com/PPvG/node-aether/files/coverage.png)](https://drone.io/github.com/PPvG/node-aether/latest)
+
 Aether is a modular IRC client library for Node.js. It consists of the following modules:
 
 - `parser` and `serializer`, which convert IRC message strings into objects and vice-versa.

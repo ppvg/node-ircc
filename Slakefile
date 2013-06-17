@@ -1,4 +1,5 @@
 {spawn} = require \child_process
+badge = require \coverage-badge
 require! [\gaze \fs]
 
 /* Tasks */
@@ -23,15 +24,25 @@ task \watch 'Watch, compile and test files.' ->
   (run 'test')!
 
 task \coverage 'Generate code coverage report using jscoverage (saved as coverage.html)' ->
-  build ->
-    jscov = spawn \jscoverage ['--no-highlight', 'lib', 'lib-cov'] {stdio: 'inherit'}
-    jscov.on \exit (code, signal) ->
-      if code is 0 and not signal?
-        file = fs.createWriteStream \coverage.html
-        process.env.\AETHER_COV = 1
-        mocha = runMocha [\--reporter \html-cov], false
-        mocha.stdout.pipe file
-        mocha.on \exit, -> spawn \rm [\-r, \lib-cov]
+  jscoverage (code, signal) ->
+    file = fs.createWriteStream \./coverage.html
+    process.env.\AETHER_COV = 1
+    mocha = runMocha [\--reporter \html-cov], false
+    mocha.stdout.pipe file
+    mocha.on \exit, ->
+      spawn \rm [\-r, \lib-cov]
+
+task \cov-badge 'Generate code coverage badge' ->
+  jscoverage (code, signal) ->
+    file = fs.createWriteStream \./coverage.json
+    process.env.\AETHER_COV = 1
+    mocha = runMocha [\--reporter \json-cov], false
+    mocha.stdout.pipe file
+    mocha.on \close, ->
+      json = require \./coverage.json
+      file = fs.createWriteStream \./coverage.png
+      badge json.coverage .pipe file
+      spawn \rm [\-r, \lib-cov]
 
 /* Helper functions */
 
@@ -59,6 +70,12 @@ runMocha = (args, inheritStdio=true) ->
     mocha = spawn path, args, { stdio: \inherit }
   else
     mocha = spawn path, args
-  mocha.on \exit, process.exit
+
+jscoverage = (callback) ->
+  build ->
+    jscov = spawn \jscoverage ['--no-highlight', 'lib', 'lib-cov'] {stdio: 'inherit'}
+    jscov.on \exit (code, signal) ->
+      if signal? or code isnt 0 then process.exit code
+      else callback!
 
 clearTerminal = -> process.stdout.write '\u001B[2J\u001B[0;0f'

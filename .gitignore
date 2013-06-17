@@ -1,3 +1,5 @@
 .*.swp
+coverage.*
 lib/
+lib-cov/
 node_modules/
