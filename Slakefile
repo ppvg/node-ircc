@@ -33,11 +33,7 @@ task \coverage 'Generate code coverage report using jscoverage (saved as coverag
         mocha.stdout.pipe file
         mocha.on \exit, -> spawn \rm [\-r, \lib-cov]
 
-# task \clean 'Remove all compiled files' ->
-#   clean!
-
 /* Helper functions */
-
 
 clean = (cb) ->
   proc = spawn \rm [\-r \./lib]
@@ -49,9 +45,9 @@ build = (cb) ->
 livescript = (args, cb) ->
   proc = spawn \livescript args
   proc.stderr.on \data say
-  proc.on \exit, (err) -> process.exit err if err
-  proc.on \close, (code) -> process.exit if not code?
-  if cb then proc.on \exit cb
+  proc.on \exit, (err) ->
+    if err then process.exit err
+    if cb then cb!
 
 runMocha = (args, inheritStdio=true) ->
   path = \node_modules/mocha/bin/mocha
@@ -60,8 +56,9 @@ runMocha = (args, inheritStdio=true) ->
     \-r \test/common
   args = defaults.concat args
   if inheritStdio then
-    spawn path, args, { stdio: \inherit }
+    mocha = spawn path, args, { stdio: \inherit }
   else
-    spawn path, args
+    mocha = spawn path, args
+  mocha.on \exit, process.exit
 
 clearTerminal = -> process.stdout.write '\u001B[2J\u001B[0;0f'
