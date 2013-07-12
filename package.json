@@ -23,7 +23,8 @@
   "scripts": {
     "build": "slake build",
     "test": "slake test",
-    "coverage": "slake coverage"
+    "coverage": "slake coverage",
+    "prepublish": "slake build"
   },
   "repository": "",
   "keywords": [

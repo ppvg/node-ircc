@@ -1,5 +1,5 @@
 module.exports = {
-  codes: require('./lib/parser-codes'),
+  codes: require('./lib/codes'),
   parser: require('./lib/parser'),
   serializer: require('./lib/serializer'),
   ParserStream: require('./lib/ParserStream'),
