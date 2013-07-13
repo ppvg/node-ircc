@@ -5,5 +5,6 @@ module.exports = {
   ParserStream: require('./lib/ParserStream'),
   SerializerStream: require('./lib/SerializerStream'),
   SerializerStream: require('./lib/SerializerStream'),
-  Connection: require('./lib/Connection')
+  Connection: require('./lib/Connection'),
+  ConnectionClient: require('./lib/ConnectionClient')
 };

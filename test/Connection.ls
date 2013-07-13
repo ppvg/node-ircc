@@ -31,13 +31,6 @@ after ->
 describe 'Connection', ->
   var triggerReadable
 
-  # Helper functions:
-
-  defaultConnection = ->
-    connection = new Connection nickname: \TestBot
-    connection.connect 6667 \irc.example.com
-    connection
-
   serializerExpect = (expected, callback) ->
     if typeof! expected isnt \Array then expected = [expected]
     # Reset the serializer.write spy
@@ -51,12 +44,17 @@ describe 'Connection', ->
       actual = spy.ss.write.args[i][0]
       actual.should.eql expectation
 
+  connectWithDefaults = ->
+    connection = new Connection
+    connection.connect 6667, \irc.example.com
+    connection
+
   beforeEach ->
     for k, s of ctorSpy then s.reset!
     triggerReadable := ->
       throw new Error '@parser.on not called yet!'
     spy.socket = {}
-    for func in [\pipe, \unpipe, \connect, \destroy, \end]
+    for func in [\pipe, \unpipe, \connect, \end, \on]
       spy.socket[func] = sinon.spy!
     spy.ss = {}
     for func in [\pipe, \unpipe, \write]
@@ -72,204 +70,71 @@ describe 'Connection', ->
       expect connection.socket .to.not.exist
       done!
 
-  should 'use nickname as default for username and realname', ->
-    connection = new Connection nickname: \TestBot
-    connection.nickname.should.equal \TestBot
-    connection.username.should.equal \TestBot
-    connection.realname.should.equal \TestBot
+  should 'create a new ParserStream and SerializerStream', ->
+    connection = new Connection
+    ctorSpy.SS.should.have.been.called
+    ctorSpy.PS.should.have.been.called
+    connection.serializer.should.equal spy.ss
+    connection.parser.should.equal spy.ps
+    expect connection.socket .to.be.undefined
 
   describe '#connect', ->
-    should 'accept object with socket options', ->
-      connection = new Connection nickname: \TestBot
-      connection.connect { host: \irc.example.com, port: 6667 }
-      connection.host.should.equal \irc.example.com
-      connection.port.should.equal 6667
+    should 'create Socket connection', ->
+      connection = connectWithDefaults!
+      connection.socket.should.equal spy.socket
 
-    should 'accept separate host and port arguments', ->
-      connection = new Connection nickname: \TestBot
-      connection.connect 6667, \irc.example.com
-      connection.port.should.equal 6667
-      connection.host.should.equal \irc.example.com
-
-    should 'default host to "localhost" (if port is supplied)', ->
-      connection = new Connection nickname: \TestBot
-      connection.connect 6667
-      connection.host.should.equal \localhost
-      connection = new Connection nickname: \TestBot
-      connection.connect { port: 6667 }
-      connection.host.should.equal \localhost
-
-    should 'default port to 6667 (if host is supplied)', ->
-      connection = new Connection nickname: \TestBot
-      connection.connect \irc.example.com
-      connection.port.should.equal 6667
-      connection = new Connection nickname: \TestBot
-      connection.connect { host: \irc.example.com }
-      connection.port.should.equal 6667
-
-    should 'throw error when called without or with invalid options', ->
-      connection = new Connection nickname: \TestBot
-      connection.~connect
-        .should.throw 'Invalid socket options'
-      (-> connection.connect (->))
-        .should.throw 'Invalid socket options'
-      (-> connection.connect unrelated: 'object')
-        .should.throw 'Invalid socket options'
-      (-> connection.connect host: 6667)
-        .should.throw 'Invalid socket options'
-      (-> connection.connect port: 'COOKIES!')
-        .should.throw 'Invalid socket options'
-
-    should 'create a new ParserStream and SerializerStream', ->
-      connection = defaultConnection!
-      ctorSpy.SS.should.have.been.called
-      ctorSpy.PS.should.have.been.called
-      connection.serializer.should.equal spy.ss
-      connection.parser.should.equal spy.ps
-
-    should 'open a Socket using the given port and host', ->
-      connection = defaultConnection!
+    should 'open the Socket using the given port and host', ->
+      connectWithDefaults!
       createConnection = ctorSpy.Socket
       createConnection.should.have.been.calledOnce
       createConnection.should.have.been.calledWith 6667, \irc.example.com
-      connection.socket.should.equal spy.socket
 
     should 'pipe the Socket into the ParserStream', ->
       pipe = spy.socket.pipe = sinon.spy!
-      connection = defaultConnection!
+      connectWithDefaults!
       pipe.should.have.been.calledWith spy.ps
 
     should 'pipe the SerializerStream into the Socket', ->
       pipe = spy.ss.pipe = sinon.spy!
-      connection = defaultConnection!
+      connectWithDefaults!
       pipe.should.have.been.calledWith spy.socket
 
-    should 'send NICK and USER commands to the server', ->
-      connection = new Connection {
-        nickname: \TestBot,
-        username: \testbot,
-        realname: 'The TestBot'
-      }
-      expected =
-        * { command: \NICK, parameters: [\TestBot] }
-        * { command: \USER, parameters: [\testbot, 0, 0, 'The TestBot'] }
-      serializerExpect expected, ->
-        connection.connect 6667 \irc.example.com
-
     should 'throw error if trying to connect twice', ->
-      connection = defaultConnection!
+      connection = connectWithDefaults!
       (-> connection.connect 6667).should.throw 'Already connected'
 
-  should 'emit "raw" event on incoming messages from the ParserStream', (done) ->
-    connection = defaultConnection!
-    connection.on \raw, (message) ->
+  should 'emit "message" event on incoming messages from the ParserStream', (done) ->
+    connection = connectWithDefaults!
+    connection.on \message, (message) ->
       message.command.should.equal 'QUIT'
       done!
     spy.ps.read = returnOnce { command: 'QUIT', type: 'command' }
     triggerReadable!
 
-  should 'emit events for message types', (done) ->
-    connection = defaultConnection!
-    called = false
-    callback = (message) ->
-      message.command.should.equal \KICK
-      if called then done!
-      else called := true
-    connection.on \KICK, callback
-    connection.on \kick, callback
-    spy.ps.read = returnOnce { command: 'KICK', type: 'command' }
-    triggerReadable!
+  describe '#close', ->
+    should 'end and unpipe socket', ->
+      connection = connectWithDefaults!
+      connection.close!
+      spy.ss.unpipe.should.have.been.calledWith spy.socket
+      spy.socket.unpipe.should.have.been.calledWith spy.ps
+      spy.socket.end.should.have.been.called
 
-  describe '#disconnect', ->
-    should 'send QUIT command', ->
-      connection = defaultConnection!
-      spy.ss.write.should.have.been.calledTwice
-      QUIT = { command: 'QUIT' }
-      serializerExpect QUIT, ->
-        connection.disconnect!
-
-    should 'accept message for QUIT command', ->
-      connection = defaultConnection!
-      spy.ss.write.should.have.been.calledTwice
-      QUIT = { command:\QUIT, parameters: [\Buh-Bai!] }
-      serializerExpect QUIT, ->
-        connection.disconnect \Buh-Bai!
-
-    should 'wait for confirmation from the server (ERROR command)', (done) ->
-      connection = defaultConnection!
-      connection.disconnect!
-      ERRORreceived = false
-      connection.on \disconnected, ->
-        ERRORreceived.should.be.false
-        done!
-      setImmediate ->
-        spy.ps.read = returnOnce { command: \ERROR }
-        triggerReadable!
-        ERRORreceived := true
-
-    should 'cleanly disconnect socket', ->
-      connection = defaultConnection!
-      connection.disconnect!
-      spy.ps.read = returnOnce { command: \ERROR }
-      triggerReadable!
-      ser = connection.serializer; sock = connection.socket
-      ser.unpipe.should.have.been.calledWith connection.socket
-      sock.unpipe.should.have.been.calledWith connection.parser
-      sock.end.should.have.been.called
-
-    should 'throw error on invalid disconnect message', ->
-      connection = defaultConnection!
-      (-> connection.disconnect {cookies: 'are not a valid quit message'})
-        .should.throw 'Invalid QUIT message'
-
-    should 'emit "disconnected" event', (done) ->
-      connection = defaultConnection!
-      connection.on \disconnected, -> done!
-      connection.on \error, ->
-        throw new Error 'Should not emit "error"...'
-      connection.disconnect!
-      # Servers confirm QUIT by responding with ERROR:
-      spy.ps.read = returnOnce { command: \ERROR }
-      triggerReadable!
-
-    should 'make it possible to connect again', (done) ->
-      connection = defaultConnection!
-      connection.disconnect!
-      spy.ps.read = returnOnce { command: \ERROR }
-      triggerReadable!
-      setImmediate ->
-        (-> connection.connect 6667).should.not.throw Error
-        done!
-
-  should 'emit "error" event on unexpected disconnect', (done) ->
-    connection = defaultConnection!
-    connection.on \error, -> done!
-    connection.on \disconnected, ->
-      throw new Error 'Should not emit "disconnected"...'
-    spy.ps.read = returnOnce { command: \ERROR }
-    triggerReadable!
-
-  should 'emit "error" event on receiving message of type ERR_', (done) ->
-    connection = defaultConnection!
-    connection.on \error, -> done!
-    spy.ps.read = returnOnce { command: \CHANNELISFULL, type: \error }
-    triggerReadable!
+    should 'create fresh parser and serializer', ->
+      connection = connectWithDefaults!
+      connection.close!
+      ctorSpy.SS.should.have.been.calledTwice
+      ctorSpy.PS.should.have.been.calledTwice
+      expect connection.socket .to.be.undefined
 
   describe '#send', ->
     should 'send command through Serializer', ->
-      connection = defaultConnection!
+      connection = connectWithDefaults!
       expected = {command: \PRIVMSG}
       serializerExpect expected, ->
         connection.send \PRIVMSG
 
-    should 'accept optional Array of parameters', ->
-      connection = defaultConnection!
-      expected = {command: \PRIVMSG, parameters: [\#channel \COOKIES!]}
-      serializerExpect expected, ->
-        connection.send \PRIVMSG, [\#channel \COOKIES!]
-
     should 'accept variable number of arguments as parameters', ->
-      connection = defaultConnection!
+      connection = connectWithDefaults!
       expected = {command: \PET, parameters: [\the \Alot \of \parameters]}
       serializerExpect expected, ->
         connection.send \PET, \the, \Alot, \of, \parameters
@@ -279,13 +144,13 @@ describe 'Connection', ->
 
     should 'accept raw message object as parameter', ->
       # Don't know yet if this is a good idea.
-      connection = defaultConnection!
+      connection = connectWithDefaults!
       expected = {command: \PRIVMSG, parameters: [\#channel \COOKIES!]}
       serializerExpect expected, ->
         connection.send expected
 
     should 'throw error on invalid arguments', ->
-      connection = defaultConnection!
+      connection = connectWithDefaults!
       (-> connection.send [\TWO \COMMANDS])
         .should.throw 'Invalid command'
       (-> connection.send {commmmmadn: \MISSPELL})

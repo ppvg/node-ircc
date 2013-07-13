@@ -1,5 +1,4 @@
 {spawn} = require \child_process
-badge = require \coverage-badge
 require! [\gaze \fs]
 
 /* Tasks */
@@ -26,16 +25,22 @@ task \watch 'Watch, compile and test files.' ->
 task \coverage 'Generate code coverage report using jscoverage (saved as coverage.html)' ->
   jscoverage (code, signal) ->
     file = fs.createWriteStream \./coverage.html
-    process.env.\AETHER_COV = 1
+    process.env.\IRCC_COV = 1
     mocha = runMocha [\--reporter \html-cov], false
     mocha.stdout.pipe file
     mocha.on \exit, ->
       spawn \rm [\-r, \lib-cov]
 
 task \cov-badge 'Generate code coverage badge' ->
+  try
+    badge = require \coverage-badge
+  catch
+    console.error "Please install 'coverage-badge'"
+    process.exit 1
+
   jscoverage (code, signal) ->
     file = fs.createWriteStream \./coverage.json
-    process.env.\AETHER_COV = 1
+    process.env.\IRCC_COV = 1
     mocha = runMocha [\--reporter \json-cov], false
     mocha.stdout.pipe file
     mocha.on \close, ->

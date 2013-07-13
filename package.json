@@ -1,15 +1,18 @@
 {
-  "name": "aether",
+  "name": "ircc",
   "private": true,
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Modular IRC library.",
   "main": "index.js",
+  "bin": "./bin/ircc",
   "directories": {
     "test": "test",
     "lib": "lib"
   },
-  "engines": {
-    "node": ">=0.9.8"
+  "dependencies": {
+  },
+  "optionalDependencies": {
+    "dnode": "~1.0.5"
   },
   "devDependencies": {
     "LiveScript": "~1.1.1",
@@ -18,7 +21,10 @@
     "sinon-chai": "~2.4.0",
     "gaze": "~0.3.4",
     "mockery": "~1.4.0",
-    "coverage-badge": "~0.0.2"
+    "coverage-badge": "~0.0.4"
+  },
+  "engines": {
+    "node": ">=0.9.8"
   },
   "scripts": {
     "build": "slake build",
@@ -26,7 +32,10 @@
     "coverage": "slake coverage",
     "prepublish": "slake build"
   },
-  "repository": "",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/PPvG/node-ircc"
+  },
   "keywords": [
     "irc",
     "chat",
