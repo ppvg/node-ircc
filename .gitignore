@@ -1,5 +1,7 @@
 .*.swp
+*.log
 coverage.*
 lib/
 lib-cov/
 node_modules/
+ircc-*.tgz

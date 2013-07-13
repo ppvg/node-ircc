@@ -1,6 +1,5 @@
 {
   "name": "ircc",
-  "private": true,
   "version": "0.1.0",
   "description": "Modular IRC library.",
   "main": "index.js",
