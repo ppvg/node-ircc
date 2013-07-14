@@ -1,5 +1,5 @@
 require! path
-require! \./ConnectionServer
+require! \./connection/PersistentConnectionServer
 
 usage = """
     Usage:
@@ -23,6 +23,5 @@ else
   console.log usage
   process.exit!
 
-server = new ConnectionServer options.port, options.host, options.socketPath || \./connection.sock
+server = new PersistentConnectionServer options.port, options.host, options.socketPath || \./connection.sock
 server.start!
-

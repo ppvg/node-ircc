@@ -1,6 +1,6 @@
 should = it
 
-parse = parser = require path.join libPath, \parser
+parse = parser = require path.join libPath, \protocol, \parser
 
 describe \parser, ->
   should 'parse simple commands', ->

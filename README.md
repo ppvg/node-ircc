@@ -6,7 +6,6 @@ Ircc is a modular IRC client library for Node.js. It consists of the following m
 - `ParserStream` and `SerializerStream`, which simplifies connecting the `parser` and `serializer` to a `Socket`.
 - `Connection`, which makes it easy to set up and break down an connection to an IRC server.
 - `ConnectionServer` and `ConnectionClient`, which allow you to decouple the Connection from your bot code. Amongst other things, this makes it possible to reload your bot without breaking the connection to the IRC server.
-- The `ircc` command, which starts a `ConnectionServer`.
 
 This modular approach allows you to use or extend ircc at whichever level of abstraction you need. It also makes unit testing a breeze.
 

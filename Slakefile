@@ -1,35 +1,35 @@
 {spawn} = require \child_process
-require! [\gaze \fs]
+require! [\gaze \fs \path \q]
 
 /* Tasks */
 
 task \build 'Compile all LiveScript from src/ to JavaScript in lib/' ->
-  clean ->
-    build!
+  clean!
+    .then build
 
 task \test 'Run the tests' ->
-  build ->
-    runMocha [\--reporter, \spec, \test/**/*.ls, \-G]
-
-task \justtest 'Run the tests without running "build"' ->
-  runMocha [\--reporter, \spec, \test/**/*.ls]
+  clean!
+    .then build
+    .done test
 
 task \watch 'Watch, compile and test files.' ->
-  run = (task) -> (->
-      clearTerminal!
-      invoke task)
-  gaze [\src/*], ->  @on \all, run \test
-  gaze [\test/*], -> @on \all, run \justtest
-  (run 'test')!
+  gaze [\src/*], ->  @on \all, ->
+    invoke \test
+  gaze [\test/*], -> @on \all, ->
+    clearTerminal!
+    test!
+  invoke \test
 
 task \coverage 'Generate code coverage report using jscoverage (saved as coverage.html)' ->
-  jscoverage (code, signal) ->
-    file = fs.createWriteStream \./coverage.html
-    process.env.\IRCC_COV = 1
-    mocha = runMocha [\--reporter \html-cov], false
-    mocha.stdout.pipe file
-    mocha.on \exit, ->
-      spawn \rm [\-r, \lib-cov]
+  jscoverage!
+    .then ->
+      file = fs.createWriteStream \coverage.html
+      process.env.\IRCC_COV = 1
+      mocha = spawnMocha [\--reporter \html-cov], false
+      mocha.stdout.pipe file
+      mocha.on \exit, ->
+        spawn \rm [\-r, \lib-cov]
+    .catch (error) -> console.error "Unable to generate code coverage report", error
 
 task \cov-badge 'Generate code coverage badge' ->
   try
@@ -38,34 +38,64 @@ task \cov-badge 'Generate code coverage badge' ->
     console.error "Please install 'coverage-badge'"
     process.exit 1
 
-  jscoverage (code, signal) ->
-    file = fs.createWriteStream \./coverage.json
-    process.env.\IRCC_COV = 1
-    mocha = runMocha [\--reporter \json-cov], false
-    mocha.stdout.pipe file
-    mocha.on \close, ->
-      json = require \./coverage.json
-      file = fs.createWriteStream \./coverage.png
-      badge json.coverage .pipe file
-      spawn \rm [\-r, \lib-cov]
+  jscoverage!
+    .then ->
+      file = fs.createWriteStream \coverage.json
+      process.env.\IRCC_COV = 1
+      mocha = spawnMocha [\--reporter \json-cov], false
+      mocha.stdout.pipe file
+      mocha.on \close, ->
+        json = require \./coverage.json
+        file = fs.createWriteStream \coverage.png
+        badge json.coverage .pipe file
+        spawn \rm [\-r, \lib-cov]
+    .catch (error) -> console.error "Unable to generate code coverage badge", error
 
-/* Helper functions */
+/* Actions */
 
-clean = (cb) ->
-  proc = spawn \rm [\-r \./lib]
-  if cb then proc.on \exit cb
+clean = ->
+  deferred = q.defer!
+  (spawn \rm [\-r \./lib]).on \exit, deferred~resolve
+  deferred.promise
 
-build = (cb) ->
-  livescript [\-bco \lib] ++ ["src/#file" for file in dir \src when /\.ls$/.test file], cb
+build = ->
+  clean!
+    .then ->
+      dirs = [\.] ++ getDirs \src
+      promises = [livescript (path.join \lib, d), (path.join \src, d) for d in dirs]
+      q.all promises
+    .catch (error) -> console.error "Couldn't compile LiveScript", error
 
-livescript = (args, cb) ->
-  proc = spawn \livescript args
-  proc.stderr.on \data say
-  proc.on \exit, (err) ->
-    if err then process.exit err
-    if cb then cb!
+test = ->
+  clearTerminal!
+  spawnMocha [\--reporter, \spec, \test/**/*.ls, \-G]
 
-runMocha = (args, inheritStdio=true) ->
+livescript = (libPath, srcPath) ->
+  deferred = q.defer!
+
+  srcFiles = [path.join srcPath, file for file in dir srcPath when /\.ls$/.test file]
+  lsc = spawn \lsc, [\-bco libPath] ++ srcFiles
+
+  stderrOutput = ''
+  lsc.stderr.on \data, -> stderrOutput += it.toString!
+  lsc.on \exit, (error) ->
+    if error then deferred.reject stderrOutput
+    else deferred.resolve!
+
+  deferred.promise
+
+jscoverage = ->
+  build!.then ->
+    deferred = q.defer!
+    jscov = spawn \jscoverage ['--no-highlight', 'lib', 'lib-cov'] {stdio: 'inherit'}
+    jscov.on \exit (code, signal) ->
+      if signal? or code isnt 0 then q.reject!
+      else q.resolve!
+    deferred.promise
+
+/* Helpers */
+
+spawnMocha = (args, inheritStdio=true) ->
   path = \node_modules/mocha/bin/mocha
   defaults =
     \-c \--compilers \ls:LiveScript
@@ -76,11 +106,10 @@ runMocha = (args, inheritStdio=true) ->
   else
     mocha = spawn path, args
 
-jscoverage = (callback) ->
-  build ->
-    jscov = spawn \jscoverage ['--no-highlight', 'lib', 'lib-cov'] {stdio: 'inherit'}
-    jscov.on \exit (code, signal) ->
-      if signal? or code isnt 0 then process.exit code
-      else callback!
+getDirs = (folder) ->
+  (fs.readdirSync folder).filter (file) ->
+    isDirectory (path.join folder, file)
+
+isDirectory = -> (fs.lstatSync it).isDirectory!
 
 clearTerminal = -> process.stdout.write '\u001B[2J\u001B[0;0f'

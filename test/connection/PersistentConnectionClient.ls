@@ -1,7 +1,7 @@
 should = it
 
 var ConnectionClient
-pathToModule = path.join libPath, \ConnectionClient
+pathToModule = path.join libPath, \connection, \PersistentConnectionClient
 
 spy =
   dnode: sinon.stub!
@@ -26,7 +26,7 @@ after ->
   mockery.deregisterAll!
   mockery.disable!
 
-describe 'ConnectionClient', ->
+describe 'PersistentConnectionClient', ->
   beforeEach ->
     [s.reset! for k, s of spy]
     [spy.d[s].reset! for s in [\on \pipe]]

@@ -1,6 +1,6 @@
 require! stream
 should = it
-pathToParserSream = path.join libPath, \ParserStream
+pathToParserSream = path.join libPath, \protocol, \ParserStream
 
 parser = sinon.stub!
 parser.parse = parser

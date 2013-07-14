@@ -5,7 +5,7 @@ require! \./createUnixServer
 # TODO write unit tests
 # TODO refactor to remove references to `process` (move to command.ls)
 
-module.exports = class ConnectionServer
+module.exports = class PersistentConnectionServer
   (@port, @host, @path) ->
     @server = createUnixServer @path
     @server.maxConnections = 1

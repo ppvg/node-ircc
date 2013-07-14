@@ -1,7 +1,7 @@
 should = it
 
 var createUnixServer
-pathToModule = path.join libPath, \createUnixServer
+pathToModule = path.join libPath, \connection, \createUnixServer
 
 spy =
   createServer: sinon.stub!

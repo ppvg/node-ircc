@@ -1,7 +1,7 @@
 should = it
 
 var ConnectionServer
-pathToModule = path.join libPath, \ConnectionServer
+pathToModule = path.join libPath, \connection, \PersistentConnectionServer
 
 before ->
   mockery.enable!
@@ -14,5 +14,5 @@ after ->
   mockery.deregisterAll!
   mockery.disable!
 
-describe 'ConnectionServer', ->
+describe 'PersistentConnectionServer', ->
   void

@@ -3,7 +3,6 @@
   "version": "0.1.0",
   "description": "Modular IRC library.",
   "main": "index.js",
-  "bin": "./bin/ircc",
   "directories": {
     "test": "test",
     "lib": "lib"

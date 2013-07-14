@@ -6,5 +6,5 @@ global.expect = chai.expect;
 chai.should()
 global.mockery = require('mockery');
 global.libPath = process.env.IRCC_COV
-  ? path.join('..', 'lib-cov')
-  : path.join('..', 'lib');
+  ? path.join(__dirname, '..', 'lib-cov')
+  : path.join(__dirname, '..', 'lib');

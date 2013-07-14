@@ -13,7 +13,7 @@ convert = ->
 module.exports = { getName, getType, convert }
 
 /* parsing code for `types` is below the `names` list */
-replyTypes = {} 
+replyTypes = {}
 replies =
   '001': "RPL_WELCOME"
   '002': "RPL_YOURHOST"

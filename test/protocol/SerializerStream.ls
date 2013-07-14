@@ -1,5 +1,5 @@
 should = it
-pathToSerializerStream = path.join libPath, \SerializerStream
+pathToSerializerStream = path.join libPath, \protocol, \SerializerStream
 
 serializer = sinon.stub!
 serializer.serialize = serializer
