@@ -1,6 +1,6 @@
 should = it
 
-serialize = serializer = require path.join libPath, \protocol, \serializer
+serialize = serializer = require modulePath \protocol, \serializer
 
 describe \serializer, ->
 

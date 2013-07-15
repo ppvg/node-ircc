@@ -1,8 +1,9 @@
 should = it
 
-parse = parser = require path.join libPath, \protocol, \parser
+parse = parser = require modulePath \protocol, \parser
 
 describe \parser, ->
+
   should 'parse simple commands', ->
     message = parse 'VERSION'
     message.command.should.equal \VERSION
@@ -102,4 +103,3 @@ describe \parser, ->
     (-> parse ':irc.example.com').should.throw 'Not a valid IRC message (not even a slightly).'
 
   should.skip 'throw more Errors'
-

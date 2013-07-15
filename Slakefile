@@ -13,9 +13,9 @@ task \test 'Run the tests' ->
     .done test
 
 task \watch 'Watch, compile and test files.' ->
-  gaze [\src/*], ->  @on \all, ->
+  gaze [\src/**/*], ->  @on \all, ->
     invoke \test
-  gaze [\test/*], -> @on \all, ->
+  gaze [\test/**/*, ], -> @on \all, ->
     clearTerminal!
     test!
   invoke \test
