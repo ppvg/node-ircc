@@ -118,8 +118,8 @@ describe 'Connection', ->
   before ->
     mockery.enable!
     mockery.registerAllowables [\events pathToModule], true
-    mockery.registerMock \../protocol/SerializerStream, createMock \SS
-    mockery.registerMock \../protocol/ParserStream, createMock \PS
+    mockery.registerMock \./protocol/SerializerStream, createMock \SS
+    mockery.registerMock \./protocol/ParserStream, createMock \PS
     mockery.registerMock \net, { createConnection: createMock \Socket }
     @Connection = require pathToModule
     @defaultConnection = ->
