@@ -25,7 +25,7 @@ task \coverage 'Generate code coverage report using jscoverage (saved as coverag
     .then ->
       file = fs.createWriteStream \coverage.html
       process.env.\IRCC_COV = 1
-      mocha = spawnMocha [\--reporter \html-cov], false
+      mocha = spawnMocha [\--reporter \html-cov, \test/**/*.ls], false
       mocha.stdout.pipe file
       mocha.on \exit, ->
         spawn \rm [\-r, \lib-cov]
@@ -42,7 +42,7 @@ task \cov-badge 'Generate code coverage badge' ->
     .then ->
       file = fs.createWriteStream \coverage.json
       process.env.\IRCC_COV = 1
-      mocha = spawnMocha [\--reporter \json-cov], false
+      mocha = spawnMocha [\--reporter \json-cov, \test/**/*.ls], false
       mocha.stdout.pipe file
       mocha.on \close, ->
         json = require \./coverage.json
@@ -89,8 +89,8 @@ jscoverage = ->
     deferred = q.defer!
     jscov = spawn \jscoverage ['--no-highlight', 'lib', 'lib-cov'] {stdio: 'inherit'}
     jscov.on \exit (code, signal) ->
-      if signal? or code isnt 0 then q.reject!
-      else q.resolve!
+      if signal? or code isnt 0 then deferred.reject!
+      else deferred.resolve!
     deferred.promise
 
 /* Helpers */
