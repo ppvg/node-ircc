@@ -18,6 +18,11 @@ describe 'Connection', ->
     expect connection.socket .to.be.undefined
 
   describe '#connect', ->
+
+    # TODO accept instance of net.Socket as input
+
+    # TODO emit 'connect' event
+
     should 'create Socket connection', ->
       connection = @defaultConnection!
       connection.socket.should.equal spy.socket
@@ -118,8 +123,8 @@ describe 'Connection', ->
   before ->
     mockery.enable!
     mockery.registerAllowables [\events pathToModule], true
-    mockery.registerMock \./protocol/SerializerStream, createMock \SS
-    mockery.registerMock \./protocol/ParserStream, createMock \PS
+    mockery.registerMock \../protocol/SerializerStream, createMock \SS
+    mockery.registerMock \../protocol/ParserStream, createMock \PS
     mockery.registerMock \net, { createConnection: createMock \Socket }
     @Connection = require pathToModule
     @defaultConnection = ->

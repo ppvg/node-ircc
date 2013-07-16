@@ -4,26 +4,26 @@ pathToModule = modulePath \connection, \SingletonServer
 describe 'SingletonServer', ->
 
   should 'create a net.Server', ->
-    ss = new @SingletonServer \./server.sock
+    ss = new @SingletonServer
     spy.createServer.should.have.been.calledOnce
     ss.server.should.equal spy.server
 
   should "forward 'listening' events", (done) ->
     listening = catchCallback spy.server, \on, \listening
-    ss = new @SingletonServer \./server.sock
+    ss = new @SingletonServer
     ss.on \listening, done
     listening!
 
   should "forward 'close' events", (done) ->
     close = catchCallback spy.server, \on, \close
-    ss = new @SingletonServer \./server.sock
+    ss = new @SingletonServer
     ss.on \close, done
     close!
 
   describe 'on client connection', ->
     should "emit 'connection' event", (done) ->
       incomingConnection = catchCallback spy.server, \on, \connection
-      ss = new @SingletonServer \./server.sock
+      ss = new @SingletonServer
       expect ss.client .to.be.null
       ss.on \connection, (socket) ->
         socket.should.equal spy.socket
@@ -32,43 +32,65 @@ describe 'SingletonServer', ->
 
     should 'accept max 1 connection', ->
       incomingConnection = catchCallback spy.server, \on, \connection
-      ss = new @SingletonServer \./server.sock
+      ss = new @SingletonServer
       incomingConnection spy.socket
       spy.socket.end.should.not.have.been.called
       incomingConnection spy.socket
       spy.socket.end.should.have.been.calledOnce
 
+    should 'ignore errors from superfluous connections', ->
+      incomingConnection = catchCallback spy.server, \on, \connection
+      ss = new @SingletonServer
+      incomingConnection spy.socket
+      # second connection will emit error:
+      connectionError = catchCallback spy.socket, \on, \error
+      incomingConnection spy.socket
+      connectionError! # boom!
+      # nothing should happen
+      ss.client.should.equal spy.socket
+
   describe 'on client disconnection', ->
     should 'prepare for new connection', ->
       incomingConnection = catchCallback spy.server, \on, \connection
       closingConnection = catchCallback spy.socket, \on, \close
-      ss = new @SingletonServer \./server.sock
+      ss = new @SingletonServer
       incomingConnection spy.socket
       closingConnection!
       expect ss.client .to.be.null
 
-  describe 'server.start()', ->
+  describe 'on client error', ->
+    should 'prepare for new connection', ->
+      incomingConnection = catchCallback spy.server, \on, \connection
+      connectionError = catchCallback spy.socket, \on, \error
+      ss = new @SingletonServer
+      incomingConnection spy.socket
+      connectionError!
+      expect ss.client .to.be.null
+
+  describe '#listen()', ->
     should 'start listening on given unix socket', ->
-      server = new @SingletonServer \./server.sock
-      server.start!
+      server = new @SingletonServer
+      server.listen \./server.sock
       spy.server.listen.should.have.been.calledOnce
       spy.server.listen.should.have.been.calledWith \./server.sock
 
     describe 'if address already in use', ->
-      should "emit 'error' if server already running", (done) ->
+      should "emit 'superfluous' if server already running", (done) ->
         yield_EADDRINUSE!
-        spy.createConnection.yields!
-        server = new @SingletonServer \./server.sock
-        server.on \error, (error) ->
-          error.message.should.equal 'Server already running'
+        connectSuccesfully = catchCallback spy.socket, \on, \connect
+        server = new @SingletonServer
+        server.on \superfluous, ->
+          spy.socket.end.should.have.been.calledOnce
           done!
-        server.start!
+        setImmediate ->
+          server.listen \./server.sock
+          connectSuccesfully!
 
       should 'remove socket file if server not running', (done) ->
         yield_EADDRINUSE!
         yield_ECONNREFUSED!
-        server = new @SingletonServer \./server.sock
-        server.start!
+        server = new @SingletonServer
+        server.listen \./server.sock
         # double setImmediate because of the 2 error steps
         setImmediate -> setImmediate ->
           spy.server.listen.should.have.been.calledTwice
@@ -117,10 +139,3 @@ describe 'SingletonServer', ->
    spy.socket.on = (type, callback) ->
       if type is \error then setImmediate ->
         callback { code: \ECONNREFUSED }
-
-  catchCallback = (obj, func, type) ->
-    var callback
-    obj[func] = (t, cb) ->
-      if t is type then callback := cb
-    ->
-      if typeof callback is \function then callback ...

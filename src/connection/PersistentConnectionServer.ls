@@ -1,27 +1,53 @@
 require! \dnode
+require! \events
 require! \./Connection
 require! \./SingletonServer
 
-module.exports = class PersistentConnectionServer
-  (@port, @host, @path) ->
-    @server = new SingletonServer @path
-    @server.on \connection, @_onConnection
+module.exports = class PersistentConnectionServer extends events.EventEmitter
+  ~>
+    @server = new SingletonServer
+    @server.on \connection, @_onClientConnection
+    @server.on \listening, @_onListening
+    @server.on \superfluous, @_onSuperfluous
+    @server.on \error, @_onServerError
+    @server.on \close, @_onServerClose
     @connection = null
 
-  start: ->
-    @server.start!
+  listen: (path) ~>
+    @server.listen path
 
-  _onConnection: (socket) ~>
+  connect: (port, host) ~>
     if not @connection?
       @connection = new Connection
-      @connection.connect @port, @host
+      @connection.connect port, host
+      @connection.on \message, (message) ~>
+        @emit \message, message
 
+  close: ~>
+    if @connection? then @connection.close!
+
+  send: ~>
+    if @connection? then @connection.send ...
+
+  _onClientConnection: (socket) ~>
     api =
-      send: @connection~send
-      close: @connection~close
-    onRemote = (remote) ~>
-      @connection.on \message, remote~incoming
+      connect: @connect
+      close: @close
+      send: @send
 
-    socket
-      .pipe dnode api, onRemote
-      .pipe socket
+    (d = dnode api).on \remote, (remote) ~>
+      @on \message, remote~incoming
+
+    socket.pipe d .pipe socket
+
+  _onListening: ~>
+    @emit \listening
+
+  _onSuperfluous: ~>
+    @emit \superfluous
+
+  _onServerError: (error) ~>
+    @emit \error, error
+
+  _onServerClose: ~>
+    @emit \close

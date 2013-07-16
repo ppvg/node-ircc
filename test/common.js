@@ -13,3 +13,14 @@ global.modulePath = function() {
   args.unshift(global.libPath);
   return path.join.apply(path, args);
 };
+global.catchCallback = function(obj, func, type) {
+  var callback;
+  obj[func] = function(t, cb) {
+    if (t === type)
+      return callback = cb;
+  };
+  return function() {
+    if (typeof callback === 'function')
+      callback.apply(this, arguments);
+  };
+};

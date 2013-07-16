@@ -3,7 +3,7 @@ require! net
 require! events
 
 module.exports = class SingletonServer extends events.EventEmitter
-  (@path) ->
+  ~>
     @server = net.createServer!
     @server.on \error, @_onError
     @server.on \connection, @_onConnection
@@ -11,7 +11,7 @@ module.exports = class SingletonServer extends events.EventEmitter
     @server.on \close, ~> @emit \close
     @client = null
 
-  start: ->
+  listen: (@path) ->
     @server.listen @path
 
   close: ->
@@ -19,18 +19,24 @@ module.exports = class SingletonServer extends events.EventEmitter
     @server.close!
 
   _onError: (error) ~>
-      if error.code is \EADDRINUSE
-        sock = net.createConnection path, ~>
-          @emit \error, new Error 'Server already running'
-        sock.on \error, (error) ~>
-          if error.code is \ECONNREFUSED
-            fs.unlink @path
-            @start!
+    if error.code is \EADDRINUSE
+      sock = net.createConnection @path
+      sock.on \connect, ~>
+        sock.end!
+        @emit \superfluous
+      sock.on \error, (error) ~>
+        if error.code is \ECONNREFUSED
+          fs.unlink @path
+          @listen @path
+    else
+      @emit \error, error
 
   _onConnection: (socket) ~>
     if @client?
       socket.end!
+      socket.on \error, -> void
     else
-      (@client = socket).on \close ~> @client = null
+      @client = socket
+      socket.on \close ~> @client = null
+      socket.on \error, ~> @client = null
       @emit \connection, socket
-
