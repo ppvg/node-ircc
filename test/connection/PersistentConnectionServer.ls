@@ -86,6 +86,16 @@ describe 'PersistentConnectionServer', ->
       spy.dnode.args[0][0].connect 6667, \irc.example.com
       triggerMessage dummyMessage
 
+    should "emit 'connect' event when connection is made", (done) ->
+      triggerConnection = catchCallback spy.server, \on, \connection
+      triggerConnected = catchCallback spy.connection, \on, \connect
+      spy.d.on.yields spy.remote
+      pcs = new @PersistentConnectionServer
+      pcs.on \connect, done
+      triggerConnection spy.socket
+      spy.dnode.args[0][0].connect 6667, \irc.example.com
+      triggerConnected!
+
   describe '#send()', ->
     should 'proxy to connection.send()', ->
       triggerConnection = catchCallback spy.server, \on, \connection
@@ -143,8 +153,42 @@ describe 'PersistentConnectionServer', ->
       triggerConnection spy.socket
       dummyMessage = { command: \WELCOME }
       incomingMessage dummyMessage
-      spy.remote.incoming.should.have.been.calledOnce
-      spy.remote.incoming.should.have.been.calledWith dummyMessage
+      spy.remote.message.should.have.been.calledOnce
+      spy.remote.message.should.have.been.calledWith dummyMessage
+
+    should "inform client of 'connect' events", (done) ->
+      triggerConnection = catchCallback spy.server, \on, \connection
+      spy.d.on.yields spy.remote
+      pcs = new @PersistentConnectionServer
+      pcs.on \connect, ->
+        setImmediate ->
+          spy.remote.connect.should.have.been.calledOnce
+          done!
+      triggerConnection spy.socket
+      pcs.emit \connect
+
+    should "call 'connect' on client when connection already existed", ->
+      triggerConnection = catchCallback spy.server, \on, \connection
+      spy.d.on.yields spy.remote
+      pcs = new @PersistentConnectionServer
+      pcs.connection = spy.connection
+      triggerConnection spy.socket
+      spy.remote.connect.should.have.been.calledOnce
+
+    should "call 'init' on client if not already connected", ->
+      triggerConnection = catchCallback spy.server, \on, \connection
+      spy.d.on.yields spy.remote
+      pcs = new @PersistentConnectionServer
+      triggerConnection spy.socket
+      spy.remote.init.should.have.been.calledOnce
+
+    should "not call 'init' on client if already connected", ->
+      triggerConnection = catchCallback spy.server, \on, \connection
+      spy.d.on.yields spy.remote
+      pcs = new @PersistentConnectionServer
+      pcs.connection = spy.connection
+      triggerConnection spy.socket
+      spy.remote.init.should.not.have.been.called
 
   beforeEach ->
     [s.reset! for i, s of spy when s.reset?]
@@ -162,7 +206,9 @@ describe 'PersistentConnectionServer', ->
     spy.dnode.returns spy.d
     spy.d.pipe = sinon.spy!
     spy.d.on = sinon.stub!
-    spy.remote.incoming = sinon.spy!
+    spy.remote.message = sinon.spy!
+    spy.remote.connect = sinon.spy!
+    spy.remote.init = sinon.spy!
 
   before ->
     mockery.enable!

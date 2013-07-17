@@ -3,19 +3,36 @@ pathToModule = modulePath \connection, \PersistentConnectionClient
 
 describe 'PersistentConnectionClient', ->
 
-  should "create dnode instance with 'incoming' method", ->
-    client = new @ConnectionClient spy.socket
-    spy.dnode.should.have.been.calledOnce
-    spy.dnode.args[0][0].should.have.key \incoming
-    spy.dnode.args[0][0].incoming.should.be.a \function
+  describe 'callback API', ->
+    should "expose callbacks via dnode", ->
+      client = new @ConnectionClient spy.socket
+      spy.dnode.should.have.been.calledOnce
+      spy.dnode.args[0][0].should.have.keys [
+        \connect
+        \message
+        \init
+      ]
 
-  should "emit 'message' when the 'incoming' method is called", (done) ->
-    client = new @ConnectionClient spy.socket
-    message = {command: 'WELCOME'}
-    client.on \message, (msg) ->
-      expect msg .to.equal message
-      done!
-    spy.dnode.args[0][0].incoming message
+    describe ".message()", ->
+      should "emit 'message'", (done) ->
+        client = new @ConnectionClient spy.socket
+        message = {command: 'WELCOME'}
+        client.on \message, (msg) ->
+          expect msg .to.equal message
+          done!
+        spy.dnode.args[0][0].message message
+
+    describe ".connect()", ->
+      should "emit 'connect'", (done) ->
+        client = new @ConnectionClient spy.socket
+        client.on \connect, done
+        spy.dnode.args[0][0].connect!
+
+    describe ".init()", ->
+      should "emit 'init'", (done) ->
+        client = new @ConnectionClient spy.socket
+        client.on \init, done
+        spy.dnode.args[0][0].init!
 
   shouldProxyToDnode = (func) ->
     ->
@@ -33,18 +50,6 @@ describe 'PersistentConnectionClient', ->
   describe '#connect()', shouldProxyToDnode \connect
   describe '#close()', shouldProxyToDnode \close
   describe '#send()', shouldProxyToDnode \send
-
-  should "emit 'connect' when dnode emits 'remote'", (done) ->
-    onRemote = catchCallback spy.d, \on, \remote
-    client = new @ConnectionClient spy.socket
-    client.on \connect, done
-    onRemote spy.remote
-
-  should "accept optional callback which is called on 'connect'", ->
-    onRemote = sinon.spy!
-    client = new @ConnectionClient spy.socket, onRemote
-    client.emit \connect
-    onRemote.should.have.been.calledOnce
 
   should 'pipe together socket and dnode', ->
     client = new @ConnectionClient spy.socket

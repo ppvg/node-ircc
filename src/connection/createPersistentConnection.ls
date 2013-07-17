@@ -19,8 +19,7 @@ if not calledDirectly
       if ready
         socket = net.createConnection filename
         client = new PersistentConnectionClient socket
-        client.on \connect, ->
-          ee.emit \open, client
+        ee.emit \client, client
       else
         ee.emit \error, new Error "Unexpected server output: #{data}"
 

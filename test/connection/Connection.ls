@@ -21,8 +21,6 @@ describe 'Connection', ->
 
     # TODO accept instance of net.Socket as input
 
-    # TODO emit 'connect' event
-
     should 'create Socket connection', ->
       connection = @defaultConnection!
       connection.socket.should.equal spy.socket
@@ -46,6 +44,12 @@ describe 'Connection', ->
     should 'throw error if trying to connect twice', ->
       connection = @defaultConnection!
       (-> connection.connect 6667).should.throw 'Already connected'
+
+    should "emit 'connect' event after connection is established", (done) ->
+      triggerConnect = catchCallback spy.socket, \on, \connect
+      connection = @defaultConnection!
+      connection.on \connect, done
+      triggerConnect!
 
   should 'emit "message" event on incoming messages from the ParserStream', (done) ->
     connection = @defaultConnection!

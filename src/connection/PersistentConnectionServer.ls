@@ -22,12 +22,14 @@ module.exports = class PersistentConnectionServer extends events.EventEmitter
       @connection.connect port, host
       @connection.on \message, (message) ~>
         @emit \message, message
+      @connection.on \connect, ~>
+        @emit \connect
 
   close: ~>
     if @connection? then @connection.close!
 
-  send: ~>
-    if @connection? then @connection.send ...
+  send: (...args) ~>
+    if @connection? then @connection.send ...args
 
   _onClientConnection: (socket) ~>
     api =
@@ -36,7 +38,12 @@ module.exports = class PersistentConnectionServer extends events.EventEmitter
       send: @send
 
     (d = dnode api).on \remote, (remote) ~>
-      @on \message, remote~incoming
+      @on \message, remote~message
+      if @connection?
+        remote.connect!
+      else
+        @on \connect, remote~connect
+        remote.init!
 
     socket.pipe d .pipe socket
 

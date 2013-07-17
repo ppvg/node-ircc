@@ -21,7 +21,7 @@ Can be used or extended at whichever level of abstraction you need. There are fo
     Simplify connecting the `parser` and `serializer` to a `Socket` connection.
 3. `Connection`<br />
     Set up, manage and break down an connection to an IRC server.
-4. `PersistentConnection`<br />
+4. `createPersistentConnection`<br />
     Allows you to decouple the Connection from your bot code, making it possible to reload your bot without breaking the connection to the IRC server.
 
 
@@ -33,24 +33,34 @@ npm install ircc
 
 ### Dependencies
 
-- [dnode](https://github.com/substack/dnode) (optional, used by the `PersistentConnection`)
+- [dnode](https://github.com/substack/dnode) (optional, used by the `PersistentConnectionClient` and -`Server`)
 - Node.js 0.9.8 or above.
 
 
 ### Example
 
 ```
-  var ircc = require('ircc');
+var ircc = require('ircc');
 
-  var connection = ircc('ircc.sock');
+var connection = ircc.createPersistentConnection('ircc.sock');
 
-  connection.on('open', function(conn) {
-    conn.on('message', function(message) {
-      console.log(message);
+connection.on('client', function(client) {
+  client.on('init', function() {
+    // called if there is no connection yet, so create one:
+    client.connect(6667, 'irc.example.com');
+    client.on('connect', function() {
+      // login to server:
+      client.send('NICK', 'MyBoy');
+      client.send('USER', 'mybot', 0, 0, 'My Awesome Bot');
     });
-    connection.connect(6667, 'irc.example.com');
-    connection.send('HELP');
   });
+  client.on('message', function(message) {
+    console.log(message);
+    if (message.command === 'WELCOME') {
+      client.send('JOIN', '#channel');
+    }
+  });
+});
 ```
 
 
@@ -104,7 +114,7 @@ The reverse of `parser`. Takes a message object and turns it into a string.
 Throws an `Error` if the object is not a valid message.
 
 
-### `codes`
+### `ircc.codes`
 
 #### `codes.convert()`
 
@@ -130,7 +140,7 @@ Find the name and type of an IRC command. Known numeric commands are converted t
 Possible values for `type` are 'reply', 'error', 'command' and 'unknown'.
 
 
-### `ircc.ParserStream` and `ircc.SerializerStream`
+### `ircc.ParserStream()` and `ircc.SerializerStream()`
 
 ```
 var serializer = new ircc.SerializerStream();
@@ -169,7 +179,7 @@ serializer.write(message);
 ```
 
 
-### `ircc.Connection`
+### `ircc.Connection()`
 
 ```
 var connection = new ircc.Connection();
@@ -179,18 +189,18 @@ Sets up a connection to an IRC server and then gets out of the way.
 
 `Connection` makes it easy to send and receive IRC messages but doesn't do any interpretation on them. E.g. it doesn't automatically respond to `PING` messages or send `NICK` and `USER` commands at the start of the session.
 
-#### connection.connect(...)
+#### `connection.connect(...)`
 
 Connect to an IRC server. Takes the same arguments as [`socket.connect(...)`][5]. Throws an error if the `connection` is already up.
 
   [5]: http://nodejs.org/api/net.html#net_socket_connect_port_host_connectlistener
 
-#### connection.close()
+#### `connection.close()`
 
 Close the connection. Throws an error if it was already closed.
 
-#### connection.send(messageObject)
-#### connection.send(command, [parameters...])
+#### `connection.send(messageObject)`
+#### `connection.send(command, [parameters...])`
 
 Send a message to the IRC server. The first argument is mandatory and can either be a message object or a string.
 
@@ -203,10 +213,111 @@ connection.send({command: 'KICK', parameters: ['#channel', 'marvin']});
 connection.send('PRIVMSG', '#channel', 'Hi there, folks!');
 ```
 
-#### connection.on('message', function(message) {})
+#### `connection.on('message', function(message) {})`
 
 Emitted when a message is received from the server. The `message` is an object, as returned by `parser.parse()`.
 
-#### connection.on('close', function() {})
+#### `connection.on('close', function() {})`
 
 Emitted after the connection is closed.
+
+
+### `ircc.PersistentConnectionServer()`
+
+Manages a `Connection` and offers an API to communicate with it via a unix socket (using dnode).
+
+```
+var server = new ircc.PersistentConnectionServer();
+```
+
+#### `server.listen(filename)`
+
+Start listening to the unix socket at `filename`. If it already exists and can be connected to, the server will emit 'superfluous' and stop.
+
+#### `server.connect(port, host)`
+
+Create and open `Connection` to IRC server at `host`:`port`.
+
+#### `server.close()`
+
+Close the `Connection`.
+
+#### `server.send(messageObject)`
+#### `server.send(command, [parameters...])`
+
+Send an IRC message. See `Connection`.
+
+#### `server.on('listening', function() {})`
+
+Emitted after the `PersistentConnectionServer` starts listening for clients on the unix socket.
+
+#### `server.on('connect', function() {})`
+
+Emitted after the `Connection` to the IRC server is created and open.
+
+#### `server.on('superfluous', function() {})`
+
+Emitted if there's already a server running on the given unix socket.
+
+#### `server.on('error', function(error) {})`
+
+Emitted when there's a problem with the unix socket server.
+
+#### `server.on('close', function() {})`
+
+Emitted after the unix socket has been closed.
+
+
+### `ircc.PersistentConnectionClient()`
+
+Creates a new client and connects it to the `PersistentConnectionServer` via the unix socket at `filename`:
+
+```
+var client = new ircc.PersistentConnectionClient(filename);
+```
+
+#### `client.connect(...)`
+
+Calls the `server`'s `.connect(...)`.
+
+#### `client.close()`
+
+Calls the `server`'s `.close()`.
+
+#### `client.send(...)`
+
+Calls the `server`'s `.send(...)`.
+
+#### `client.on('message', function(message) {})`
+
+Emitted when a message from the IRC server is received (via the `PersistentConnectionServer`, of course). The `message` is the same as you would expect from a `Connection` or from the `parser`.
+
+#### `client.on('connect', function() {})`
+
+Emitted when the persistent connection server has a working `Connection` to the IRC server.
+
+**Important:** this event is also emitted when connecting to an **existing** server with an **existing** `Connection`. Therefore it does **not** imply a "freshly made" connection.
+
+#### `client.on('init', function() {})`
+
+Emitted when connected to a persistent connection server that doesn't have a `Connection` to an IRC server yet. This is, in essence, a prompt to call `client.connect(...)`:
+
+
+### `ircc(filename)`
+### `ircc.createPersistentConnection(filename)`
+
+Creates a new `PersistentConnectionClient` and connects it to the `PersistentConnectionServer` via the unix socket at `filename`. If there is no server yet, it will be spawned.
+
+Returns an event emitter which can emit `'client'` and `'error'` events:
+
+```
+var clientEmitter = ircc('mybot.sock');
+```
+
+#### `clientEmitter.on('client', function(client) {})`
+
+Emitted after the `PersistentConnectionClient` is created and connected to a new or existing `PersistentConnectionServer`.
+
+#### `clientEmitter.on('error', function(error) {})`
+
+Emitted when there is a problem with the `PersistentConnectionServer`.

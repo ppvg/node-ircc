@@ -10,7 +10,7 @@ describe 'createPersistentConnection', ->
     expect args .to.be.an.array
     args[0].should.equal pathToModule+'.js'
 
-  should 'resolve socket filename to absolute path', ->
+  should 'resolve socket fliename to absolute path', ->
     pc = @createPersistentConnection \filename.sock
     spy.resolve.should.have.been.calledOnce
     spy.resolve.should.have.been.calledWith \filename.sock
@@ -43,20 +43,12 @@ describe 'createPersistentConnection', ->
       spy.createConnection.should.have.been.calledWith \/path/to/ircc.sock
       spy.PCClient.should.have.been.calledWith spy.socket
 
-  should "expose client via 'open' event after it emits 'connect'", (done) ->
+  should "expose client via 'client' event", (done) ->
     serverOutput = catchCallback spy.server.stdout, \on, \data
-    spy.client.on.yields!
     pc = @createPersistentConnection!
-    pc.on \open, (client) ->
+    pc.on \client, (client) ->
       expect client .to.equal spy.client
       done!
-    serverOutput \listening
-
-  should "not expose client unless it emits 'connect'", ->
-    serverOutput = catchCallback spy.server.stdout, \on, \data
-    pc = @createPersistentConnection!
-    pc.on \open, (client) ->
-      throw new Error "'open' should not have been emitted until client was connected"
     serverOutput \listening
 
   should "emit 'error' if server process outputs to stderr", (done) ->

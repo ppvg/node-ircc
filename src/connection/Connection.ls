@@ -12,14 +12,15 @@ module.exports = class Connection extends events.EventEmitter
       while (message = @parser.read!)?
         @emit \message, message
 
-  connect: (...args) ->
+  connect: (...args) ~>
     if @socket? then throw new Error 'Already connected'
     @socket = net.createConnection ...args
     @serializer.pipe @socket
     @socket.pipe @parser
     @socket.on \close, ~> @emit \close
+    @socket.on \connect, ~> @emit \connect
 
-  close: ->
+  close: ~>
     if not @socket?
       throw new Error 'Already disconnected'
     @serializer.unpipe @socket
@@ -29,7 +30,9 @@ module.exports = class Connection extends events.EventEmitter
     @serializer = new SerializerStream
     @parser = new ParserStream
 
-  send: (...args) ->
+  send: (...args) ~>
+    if not @socket? then throw new Error 'Not connected'
+
     command = args[0]
     parameters = args.slice 1
 
