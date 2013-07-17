@@ -10,15 +10,19 @@ task \build 'Compile all LiveScript from src/ to JavaScript in lib/' ->
 task \test 'Run the tests' ->
   clean!
     .then build
-    .done test
+    .then test
+    .catch -> process.exit 1
 
 task \watch 'Watch, compile and test files.' ->
   gaze [\src/*], ->  @on \all, ->
+    clearTerminal!
+    clean!.then build .then test .catch -> void
     invoke \test
   gaze [\test/*, ], -> @on \all, ->
     clearTerminal!
-    test!
-  invoke \test
+    test!.catch -> void
+  clearTerminal!
+  test!.catch -> void
 
 task \coverage 'Generate code coverage report and badge using jscoverage' ->
   process.env.\IRCC_COV = 1

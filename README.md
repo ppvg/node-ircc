@@ -12,7 +12,10 @@ Sets up a connection to an IRC server and then gets out of the way. It doesn't r
 
 #### Dependencies
 
-Node.js 0.9.8 or above.
+- Node.js 0.9.8 or above.
+- [ircp]
+
+  [ircp]: https://npmjs.org/package/ircp
 
 ## Example
 
@@ -83,8 +86,6 @@ Emitted when a message is received from the server. The `message` is an object, 
       type: 'reply' }
 
 The `type` is either 'command', 'reply', 'error' or 'unknown'. If the message was a numeric response, `code` will be the original command, and `command` will be a human-readable substitute. For more details, see [ircp][ircp].
-
-  [ircp]: https://npmjs.org/package/ircp
 
 #### connection.on('connect', function() {})
 
