@@ -1,5 +1,5 @@
 should = it
-pathToModule = modulePath \connection, \Connection
+pathToModule = modulePath \Connection
 
 describe 'Connection', ->
 
@@ -19,7 +19,14 @@ describe 'Connection', ->
 
   describe '#connect', ->
 
-    # TODO accept instance of net.Socket as input
+    # TODO
+    should.skip "emit 'error' if connection can't be made"
+
+    # TODO
+    should.skip 'handle TLS connection'
+
+    # TODO
+    should.skip 'accept instance of net.Socket as input'
 
     should 'create Socket connection', ->
       connection = @defaultConnection!
@@ -104,11 +111,6 @@ describe 'Connection', ->
       (-> connection.send {commmmmadn: \MISSPELL})
         .should.throw 'Invalid command'
 
-
-  should.skip 'handle TLS connection', ->
-  should.skip 'connect to password-protected servers', ->
-  should.skip 'emit "connected" event?', ->
-
   beforeEach ->
     [s.reset! for k, s of ctorSpy]
     @triggerReadable = ->
@@ -127,8 +129,8 @@ describe 'Connection', ->
   before ->
     mockery.enable!
     mockery.registerAllowables [\events pathToModule], true
-    mockery.registerMock \../protocol/SerializerStream, createMock \SS
-    mockery.registerMock \../protocol/ParserStream, createMock \PS
+    mockery.registerMock \./SerializerStream, createMock \SS
+    mockery.registerMock \./ParserStream, createMock \PS
     mockery.registerMock \net, { createConnection: createMock \Socket }
     @Connection = require pathToModule
     @defaultConnection = ->

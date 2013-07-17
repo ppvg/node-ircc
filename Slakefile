@@ -13,43 +13,40 @@ task \test 'Run the tests' ->
     .done test
 
 task \watch 'Watch, compile and test files.' ->
-  gaze [\src/**/*], ->  @on \all, ->
+  gaze [\src/*], ->  @on \all, ->
     invoke \test
-  gaze [\test/**/*, ], -> @on \all, ->
+  gaze [\test/*, ], -> @on \all, ->
     clearTerminal!
     test!
   invoke \test
 
-task \coverage 'Generate code coverage report using jscoverage (saved as coverage.html)' ->
+task \coverage 'Generate code coverage report and badge using jscoverage' ->
+  process.env.\IRCC_COV = 1
   jscoverage!
     .then ->
-      file = fs.createWriteStream \coverage.html
-      process.env.\IRCC_COV = 1
-      mocha = spawnMocha [\--reporter \html-cov, \test/**/*.ls], false
-      mocha.stdout.pipe file
-      mocha.on \exit, ->
-        spawn \rm [\-r, \lib-cov]
-    .catch (error) -> console.error "Unable to generate code coverage report", error
-
-task \cov-badge 'Generate code coverage badge' ->
-  try
-    badge = require \coverage-badge
-  catch
-    console.error "Please install 'coverage-badge'"
-    process.exit 1
-
-  jscoverage!
+      file = fs.openSync \coverage.html, \w
+      mocha [\--reporter \html-cov], [\ignore, file, \ignore]
     .then ->
-      file = fs.createWriteStream \coverage.json
-      process.env.\IRCC_COV = 1
-      mocha = spawnMocha [\--reporter \json-cov, \test/**/*.ls], false
-      mocha.stdout.pipe file
-      mocha.on \close, ->
-        json = require \./coverage.json
-        file = fs.createWriteStream \coverage.png
-        badge json.coverage .pipe file
-        spawn \rm [\-r, \lib-cov]
-    .catch (error) -> console.error "Unable to generate code coverage badge", error
+      console.log "Code coverage report written to 'coverage.html'"
+    .catch (e) ->
+      console.error 'Unable to generate code coverage report:', e
+    .then ->
+      file = fs.openSync \coverage.json, \w
+      mocha [\--reporter \json-cov], [\ignore, file, \ignore]
+    .then ->
+      try
+        badge = require \coverage-badge
+      catch
+        throw new Error "Unable to generate coverage badge: 'coverage-badge' is not installed"
+      json = JSON.parse fs.readFileSync \coverage.json
+      file = fs.createWriteStream \coverage.png
+      badge json.coverage .pipe file
+    .then ->
+      console.log "Code coverage badge written to 'coverage.png'"
+    .catch (e) ->
+      console.error 'Unable to generate code coverage badge:', e
+    .finally ->
+      spawn \rm [\-r, \lib-cov]
 
 /* Actions */
 
@@ -68,7 +65,7 @@ build = ->
 
 test = ->
   clearTerminal!
-  spawnMocha [\--reporter, \spec, \test/**/*.ls, \-G]
+  mocha [\--reporter, \spec, \-G], \inherit
 
 livescript = (libPath, srcPath) ->
   deferred = q.defer!
@@ -86,25 +83,27 @@ livescript = (libPath, srcPath) ->
 
 jscoverage = ->
   build!.then ->
+    jscov = spawn \jscoverage, ['--no-highlight', 'lib', 'lib-cov'], {stdio: 'inherit'}
     deferred = q.defer!
-    jscov = spawn \jscoverage ['--no-highlight', 'lib', 'lib-cov'] {stdio: 'inherit'}
-    jscov.on \exit (code, signal) ->
+    jscov.on \exit, (code, signal) ->
       if signal? or code isnt 0 then deferred.reject!
       else deferred.resolve!
     deferred.promise
 
-/* Helpers */
-
-spawnMocha = (args, inheritStdio=true) ->
+mocha = (args, io=\ignore) ->
   path = \node_modules/mocha/bin/mocha
   defaults =
     \-c \--compilers \ls:LiveScript
     \-r \test/common
   args = defaults.concat args
-  if inheritStdio then
-    mocha = spawn path, args, { stdio: \inherit }
-  else
-    mocha = spawn path, args
+  mocha = spawn path, args, { stdio: io }
+  deferred = q.defer!
+  mocha.on \exit, (code, signal) ->
+    if signal? or code isnt 0 then deferred.reject!
+    else deferred.resolve!
+  deferred.promise
+
+/* Helpers */
 
 getDirs = (folder) ->
   (fs.readdirSync folder).filter (file) ->

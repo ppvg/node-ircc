@@ -1,6 +1,6 @@
 require! stream
 should = it
-pathToModule = modulePath \protocol, \ParserStream
+pathToModule = modulePath \ParserStream
 
 describe \ParserStream, ->
 
@@ -35,7 +35,7 @@ describe \ParserStream, ->
   before ->
     mockery.enable();
     mockery.registerAllowables [\stream pathToModule]
-    mockery.registerMock \./parser, parser
+    mockery.registerMock \ircp, parser
     @ParserStream = require pathToModule
 
   after ->

@@ -1,5 +1,5 @@
 require! stream
-require! \./serializer
+require! ircp
 
 module.exports = class SerializerStream extends stream.Transform
   (options = {}) ~>
@@ -8,5 +8,5 @@ module.exports = class SerializerStream extends stream.Transform
 
   _transform: (input, encoding, done) ->
     # TODO try / catch over serialize()
-    @push (serializer.serialize input) + '\r\n'
+    @push (ircp.serialize input) + '\r\n'
     done!

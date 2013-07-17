@@ -1,15 +1,14 @@
 {
   "name": "ircc",
-  "version": "0.2.2",
-  "description": "Modular IRC library.",
+  "version": "0.3.0",
+  "description": "IRC connection library.",
   "main": "index.js",
   "directories": {
     "test": "test",
     "lib": "lib"
   },
-  "dependencies": {},
-  "optionalDependencies": {
-    "dnode": "~1.0.5"
+  "dependencies": {
+    "ircp": "~1.0.0"
   },
   "devDependencies": {
     "LiveScript": "~1.1.1",

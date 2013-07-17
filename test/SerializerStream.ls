@@ -1,5 +1,5 @@
 should = it
-pathToModule = modulePath \protocol, \SerializerStream
+pathToModule = modulePath \SerializerStream
 
 describe \SerializerStream, ->
 
@@ -31,7 +31,7 @@ describe \SerializerStream, ->
   before ->
     mockery.enable();
     mockery.registerAllowables [\stream pathToModule]
-    mockery.registerMock \./serializer, serializer
+    mockery.registerMock \ircp, serializer
     @SerializerStream = require pathToModule
 
   after ->

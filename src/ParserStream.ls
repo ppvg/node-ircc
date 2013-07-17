@@ -1,5 +1,5 @@
 require! stream
-require! \./parser
+require! ircp
 
 module.exports = class ParserStream extends stream.Transform
   (options = {}) ~>
@@ -10,7 +10,7 @@ module.exports = class ParserStream extends stream.Transform
   _transform: (input, encoding, done) ->
     lines = @_split input.toString!
     for line in lines
-      @push parser.parse line
+      @push ircp.parse line
     done!
 
   _split: (input) ->

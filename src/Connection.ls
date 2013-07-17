@@ -1,7 +1,7 @@
 require! net
 require! events
-require! \../protocol/ParserStream
-require! \../protocol/SerializerStream
+require! \./ParserStream
+require! \./SerializerStream
 
 module.exports = class Connection extends events.EventEmitter
 
