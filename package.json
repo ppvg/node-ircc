@@ -1,14 +1,13 @@
 {
   "name": "ircc",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Modular IRC library.",
   "main": "index.js",
   "directories": {
     "test": "test",
     "lib": "lib"
   },
-  "dependencies": {
-  },
+  "dependencies": {},
   "optionalDependencies": {
     "dnode": "~1.0.5"
   },
@@ -19,7 +18,8 @@
     "sinon-chai": "~2.4.0",
     "gaze": "~0.3.4",
     "mockery": "~1.4.0",
-    "coverage-badge": "~0.0.4"
+    "coverage-badge": "~0.0.4",
+    "q": "~0.9.6"
   },
   "engines": {
     "node": ">=0.9.8"
