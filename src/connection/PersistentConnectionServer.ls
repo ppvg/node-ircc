@@ -27,6 +27,7 @@ module.exports = class PersistentConnectionServer extends events.EventEmitter
 
   close: ~>
     if @connection? then @connection.close!
+    @server.close!
 
   send: (...args) ~>
     if @connection? then @connection.send ...args

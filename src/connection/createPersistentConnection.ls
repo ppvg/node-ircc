@@ -11,7 +11,8 @@ if not calledDirectly
   module.exports = createPersistentConnection = (filename) ->
     ee = new events.EventEmitter
     filename = path.resolve (filename || \ircc.sock)
-    server = spawn \node, [module.filename, filename]
+    server = spawn \node, [module.filename, filename], { detached: true }
+    server.unref!
 
     server.stdout.on \data, (data) ->
       data = data.toString!
@@ -37,5 +38,7 @@ else
   server.on \error, (e) ->
     process.stderr.write \error:, e
     process.exit 1
+  server.on \close, ->
+    process.exit 0
 
   server.listen process.argv[2]

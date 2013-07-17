@@ -112,18 +112,25 @@ describe 'PersistentConnectionServer', ->
       spy.connection.send.should.not.have.been.called
 
   describe '#close()', ->
-    should 'proxy to connection.close()', ->
+    should 'close the Connection', ->
       triggerConnection = catchCallback spy.server, \on, \connection
       pcs = new @PersistentConnectionServer
       pcs.connect 6667, \irc.example.com
       pcs.close!
       spy.connection.close.should.have.been.calledOnce
 
-    should 'fail silently if connection is not open', ->
+    should 'stop accepting client connections', ->
       triggerConnection = catchCallback spy.server, \on, \connection
       pcs = new @PersistentConnectionServer
-      pcs~close.should.not.throw
-      spy.connection.close.should.not.have.been.called
+      pcs.connect 6667, \irc.example.com
+      pcs.close!
+      spy.server.close.should.have.been.calledOnce
+
+    should 'close gracefully even if connection is not open', ->
+      triggerConnection = catchCallback spy.server, \on, \connection
+      pcs = new @PersistentConnectionServer
+      pcs.close!
+      spy.server.close.should.have.been.calledOnce
 
   describe 'client-server API', ->
     shouldProxy = (method) ->
@@ -201,6 +208,7 @@ describe 'PersistentConnectionServer', ->
     spy.connection.on = sinon.spy!
     spy.server.listen = sinon.spy!
     spy.server.on = sinon.spy!
+    spy.server.close = sinon.spy!
     spy.socket.pipe = sinon.stub!
     spy.socket.pipe.returns spy.d
     spy.dnode.returns spy.d

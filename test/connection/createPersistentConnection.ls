@@ -10,6 +10,13 @@ describe 'createPersistentConnection', ->
     expect args .to.be.an.array
     args[0].should.equal pathToModule+'.js'
 
+  should 'detach child process', ->
+    pc = @createPersistentConnection!
+    spy.spawn.should.have.been.calledOnce
+    opts = spy.spawn.args[0][2]
+    expect opts.detached .to.be.true
+    spy.server.unref.should.have.been.calledOnce
+
   should 'resolve socket fliename to absolute path', ->
     pc = @createPersistentConnection \filename.sock
     spy.resolve.should.have.been.calledOnce
@@ -79,8 +86,9 @@ describe 'createPersistentConnection', ->
     spy.createConnection.returns spy.socket
     spy.resolve.returns \/path/to/ircc.sock
     spy.spawn.returns spy.server
-    spy.server.stdout.on = sinon.stub!
-    spy.server.stderr.on = sinon.stub!
+    spy.server.stdout = { on: sinon.stub! }
+    spy.server.stderr = { on: sinon.stub! }
+    spy.server.unref = sinon.spy!
 
   before ->
     mockery.enable!
@@ -102,7 +110,4 @@ describe 'createPersistentConnection', ->
     createConnection: sinon.stub!
     resolve: sinon.stub!
     spawn: sinon.stub!
-    server:
-      stdout: {}
-      stderr: {}
-
+    server: {}

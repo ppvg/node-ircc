@@ -1,6 +1,6 @@
 {
   "name": "ircc",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Modular IRC library.",
   "main": "index.js",
   "directories": {
@@ -13,12 +13,12 @@
   },
   "devDependencies": {
     "LiveScript": "~1.1.1",
-    "mocha": "~1.10.0",
-    "chai": "~1.6.1",
+    "mocha": "~1.12.0",
+    "chai": "~1.7.2",
     "sinon-chai": "~2.4.0",
-    "gaze": "~0.3.4",
+    "gaze": "~0.4.1",
     "mockery": "~1.4.0",
-    "coverage-badge": "~0.0.4",
+    "coverage-badge": "0.0.5",
     "q": "~0.9.6"
   },
   "engines": {
