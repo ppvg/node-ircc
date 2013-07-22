@@ -1,114 +1,104 @@
-should = it
+i = it
 pathToModule = modulePath \Connection
 
 describe 'Connection', ->
 
-  should 'idle until #connect is called', (done) ->
-    connection = new @Connection
-    setImmediate ->
-      expect connection.socket .to.not.exist
+  i 'idle until #connect is called', (done) ->
+    setImmediate ~>
+      expect @connection.socket .to.not.exist
       done!
 
-  should 'create a new ParserStream and SerializerStream', ->
-    connection = new @Connection
+  i 'create a new ParserStream and SerializerStream', ->
     ctorSpy.SS.should.have.been.called
     ctorSpy.PS.should.have.been.called
-    connection.serializer.should.equal spy.ss
-    connection.parser.should.equal spy.ps
-    expect connection.socket .to.be.undefined
+    @connection.serializer.should.equal spy.ss
+    @connection.parser.should.equal spy.ps
+    expect @connection.socket .to.be.undefined
 
   describe '#connect', ->
 
     # TODO
-    should.skip "emit 'error' if connection can't be made"
+    i.skip 'handle TLS connection'
 
-    # TODO
-    should.skip 'handle TLS connection'
+    i 'create Socket connection', ->
+      @connect!
+      @connection.socket.should.equal spy.socket
 
-    # TODO
-    should.skip 'accept instance of net.Socket as input'
-
-    should 'create Socket connection', ->
-      connection = @defaultConnection!
-      connection.socket.should.equal spy.socket
-
-    should 'open the Socket using the given port and host', ->
-      @defaultConnection!
+    i 'open the Socket using the given port and host', ->
+      @connect!
       createConnection = ctorSpy.Socket
       createConnection.should.have.been.calledOnce
       createConnection.should.have.been.calledWith 6667, \irc.example.com
 
-    should 'pipe the Socket into the ParserStream', ->
-      pipe = spy.socket.pipe = sinon.spy!
-      @defaultConnection!
-      pipe.should.have.been.calledWith spy.ps
+    i 'pipe the Socket into the ParserStream', ->
+      @connect!
+      spy.socket.pipe.should.have.been.calledWith spy.ps
+      # Should not close parser on 'close':
+      spy.socket.pipe.args[0][1].should.eql { end: false }
 
-    should 'pipe the SerializerStream into the Socket', ->
-      pipe = spy.ss.pipe = sinon.spy!
-      @defaultConnection!
-      pipe.should.have.been.calledWith spy.socket
+    i 'pipe the SerializerStream into the Socket', ->
+      @connect!
+      spy.ss.pipe.should.have.been.calledWith spy.socket
 
-    should 'throw error if trying to connect twice', ->
-      connection = @defaultConnection!
-      (-> connection.connect 6667).should.throw 'Already connected'
+    i 'throw error if trying to connect twice', ->
+      @connect!
+      @connect.should.throw 'Already connected'
 
-    should "emit 'connect' event after connection is established", (done) ->
+    i "emit 'connect' event after connection is established", (done) ->
       triggerConnect = catchCallback spy.socket, \on, \connect
-      connection = @defaultConnection!
-      connection.on \connect, done
+      @connect!
+      @connection.on \connect, done
       triggerConnect!
 
-  should 'emit "message" event on incoming messages from the ParserStream', (done) ->
-    connection = @defaultConnection!
-    connection.on \message, (message) ->
+    i "emit 'error' event if connection can't be made", (done) ->
+      triggerError = catchCallback spy.socket, \on, \error
+      @connect!
+      @connection.on \error, done
+      triggerError!
+
+  i 'emit "message" event on incoming messages from the ParserStream', (done) ->
+    @connect!
+    @connection.on \message, (message) ->
       message.command.should.equal 'QUIT'
       done!
     spy.ps.read = returnOnce { command: 'QUIT', type: 'command' }
     @triggerReadable!
 
   describe '#close', ->
-    should 'end and unpipe socket', ->
-      connection = @defaultConnection!
-      connection.close!
+    i 'end and unpipe socket', ->
+      @connect!
+      @connection.close!
       spy.ss.unpipe.should.have.been.calledWith spy.socket
       spy.socket.unpipe.should.have.been.calledWith spy.ps
       spy.socket.end.should.have.been.called
 
-    should 'create fresh parser and serializer', ->
-      connection = @defaultConnection!
-      connection.close!
-      ctorSpy.SS.should.have.been.calledTwice
-      ctorSpy.PS.should.have.been.calledTwice
-      expect connection.socket .to.be.undefined
-
   describe '#send', ->
-    should 'send command through Serializer', ->
-      connection = @defaultConnection!
-      expected = {command: \PRIVMSG}
-      serializerExpect expected, ->
-        connection.send \PRIVMSG
+    i 'send command through Serializer', ->
+      @connect!
+      serializerExpect {command: \PRIVMSG}, ~>
+        @connection.send \PRIVMSG
 
-    should 'accept variable number of arguments as parameters', ->
-      connection = @defaultConnection!
+    i 'accept variable number of arguments as parameters', ->
+      @connect!
       expected = {command: \PET, parameters: [\the \Alot \of \parameters]}
-      serializerExpect expected, ->
-        connection.send \PET, \the, \Alot, \of, \parameters
+      serializerExpect expected, ~>
+        @connection.send \PET, \the, \Alot, \of, \parameters
       expected = {command: \NUMS, parameters: [\are, \fine, \42, \9001]}
-      serializerExpect expected, ->
-        connection.send \NUMS, \are, \fine, 42, 9001
+      serializerExpect expected, ~>
+        @connection.send \NUMS, \are, \fine, 42, 9001
 
-    should 'accept raw message object as parameter', ->
+    i 'accept raw message object as parameter', ->
       # Don't know yet if this is a good idea.
-      connection = @defaultConnection!
+      @connect!
       expected = {command: \PRIVMSG, parameters: [\#channel \COOKIES!]}
-      serializerExpect expected, ->
-        connection.send expected
+      serializerExpect expected, ~>
+        @connection.send expected
 
-    should 'throw error on invalid arguments', ->
-      connection = @defaultConnection!
-      (-> connection.send [\TWO \COMMANDS])
+    i 'throw error on invalid arguments', ->
+      @connect!
+      (~> @connection.send [\TWO \COMMANDS])
         .should.throw 'Invalid command'
-      (-> connection.send {commmmmadn: \MISSPELL})
+      (~> @connection.send {commmmmadn: \MISSPELL})
         .should.throw 'Invalid command'
 
   beforeEach ->
@@ -125,6 +115,7 @@ describe 'Connection', ->
       on: (event, cb) ~>
         if event is \readable
           @triggerReadable = cb
+    @connection = new @Connection
 
   before ->
     mockery.enable!
@@ -133,9 +124,8 @@ describe 'Connection', ->
     mockery.registerMock \./ParserStream, createMock \PS
     mockery.registerMock \net, { createConnection: createMock \Socket }
     @Connection = require pathToModule
-    @defaultConnection = ->
-      (connection = new @Connection).connect 6667, \irc.example.com
-      connection
+    @connect = ~>
+      @connection.connect 6667, \irc.example.com
 
   after ->
     mockery.deregisterAll!
@@ -174,5 +164,3 @@ describe 'Connection', ->
         value
       else
         null
-
-

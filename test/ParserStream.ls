@@ -1,27 +1,25 @@
 require! stream
-should = it
+i = it
 pathToModule = modulePath \ParserStream
 
 describe \ParserStream, ->
 
-  should 'be a Transform stream', ->
+  i 'be a Transform stream', ->
     @ParserStream.prototype.should.have.property '_transform'
 
-  should 'split the input into lines and emit objects', (done) ->
-    ps = new @ParserStream
+  i 'split the input into lines and emit objects', (done) ->
     count = 0
-    ps.on 'data', (data) ->
+    @ps.on 'data', (data) ->
       data.should.be.an \object
       count += 1
       if count is 3 then done!
       if count > 3 then throw new Error "Too many objects emitted"
-    for til 3 then ps.write 'VERSION\r\n'
+    for til 3 then @ps.write 'VERSION\r\n'
 
-  should 'parse incoming lines', (done) ->
-    ps = new @ParserStream
-    ps.write 'VERSION\r\n'
-    ps.write 'VERSION\r\n'
-    ps.on 'data', (data) ~>
+  i 'parse incoming lines', (done) ->
+    @ps.write 'VERSION\r\n'
+    @ps.write 'VERSION\r\n'
+    @ps.on 'data', (data) ~>
       data.should.equal @mockMessage
     setImmediate ->
       parser.should.have.been.calledTwice
@@ -31,6 +29,7 @@ describe \ParserStream, ->
     parser.reset!
     @mockMessage = { command: 'VERSION' }
     parser.returns @mockMessage
+    @ps = new @ParserStream
 
   before ->
     mockery.enable();

@@ -16,19 +16,17 @@ module.exports = class Connection extends events.EventEmitter
     if @socket? then throw new Error 'Already connected'
     @socket = net.createConnection ...args
     @serializer.pipe @socket
-    @socket.pipe @parser
+    @socket.pipe @parser, { end: false }
     @socket.on \close, ~> @emit \close
     @socket.on \connect, ~> @emit \connect
+    @socket.on \error, (error) ~> @emit \error, error
 
   close: ~>
-    if not @socket?
-      throw new Error 'Already disconnected'
+    if not @socket? then throw new Error 'Already disconnected'
     @serializer.unpipe @socket
     @socket.unpipe @parser
     @socket.end!
     delete @socket
-    @serializer = new SerializerStream
-    @parser = new ParserStream
 
   send: (...args) ~>
     if not @socket? then throw new Error 'Not connected'
