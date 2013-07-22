@@ -56,6 +56,12 @@ describe 'Connection', ->
       @connection.on \error, done
       triggerError!
 
+    i 'emit "close" event after connection has closed', (done) ->
+      triggerClose = catchCallback spy.socket, \on, \close
+      @connect!
+      @connection.on \close, done
+      triggerClose!
+
   i 'emit "message" event on incoming messages from the ParserStream', (done) ->
     @connect!
     @connection.on \message, (message) ->
@@ -64,6 +70,7 @@ describe 'Connection', ->
     spy.ps.read = returnOnce { command: 'QUIT', type: 'command' }
     @triggerReadable!
 
+
   describe '#close', ->
     i 'end and unpipe socket', ->
       @connect!
@@ -71,6 +78,11 @@ describe 'Connection', ->
       spy.ss.unpipe.should.have.been.calledWith spy.socket
       spy.socket.unpipe.should.have.been.calledWith spy.ps
       spy.socket.end.should.have.been.called
+
+    i 'throw error if already disconnected', ->
+      @connect!
+      @connection.close!
+      @connection~close.should.throw 'Already disconnected'
 
   describe '#send', ->
     i 'send command through Serializer', ->
@@ -100,6 +112,9 @@ describe 'Connection', ->
         .should.throw 'Invalid command'
       (~> @connection.send {commmmmadn: \MISSPELL})
         .should.throw 'Invalid command'
+
+    i 'throw error if not connected', ->
+      (~> @connection.send \PRIVMSG).should.throw 'Not connected'
 
   beforeEach ->
     [s.reset! for k, s of ctorSpy]
